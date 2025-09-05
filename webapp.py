@@ -319,7 +319,7 @@ if st.session_state.player_data:
         
         with col1:
             st.markdown('<div class="team-section">', unsafe_allow_html=True)
-            st.markdown('<div class="team-header">🔴 Team Red</div>', unsafe_allow_html=True)
+            st.markdown('<div class="team-header">🔴 Team Colours</div>', unsafe_allow_html=True)
             for player in st.session_state.team1:
                 st.markdown(f'<div class="team-red">{player}</div>', unsafe_allow_html=True)
             st.markdown(f"**Total Score: {team1_score}**")
@@ -377,4 +377,5 @@ with st.sidebar:
 # Add footer
 st.markdown("---")
 st.markdown("*5v5 Team Generator - Automatically creates balanced teams based on historical performance*")
+
 
