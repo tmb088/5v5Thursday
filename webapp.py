@@ -11,8 +11,52 @@ st.set_page_config(
     layout="wide"
 )
 
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 2.5rem;
+        color: #1f77b4;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .sub-header {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 0.3rem;
+        margin-top: 1.5rem;
+    }
+    .player-card {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-left: 4px solid #3498db;
+    }
+    .team-red {
+        background-color: #ffebee;
+        border-left: 4px solid #f44336;
+    }
+    .team-white {
+        background-color: #f5f5f5;
+        border-left: 4px solid #9e9e9e;
+    }
+    .metric-card {
+        background-color: #e3f2fd;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin: 1rem 0;
+        text-align: center;
+    }
+    .stButton button {
+        width: 100%;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # App title
-st.title("⚽ 5v5 Team Generator")
+st.markdown('<h1 class="main-header">⚽ 5v5 Team Generator</h1>', unsafe_allow_html=True)
 st.markdown("Automatically loads data from 'thursday_football.xlsx' in the same directory.")
 
 # Initialize session state
@@ -24,14 +68,18 @@ if 'synergy' not in st.session_state:
     st.session_state.synergy = defaultdict(lambda: defaultdict(int))
 if 'selected_players' not in st.session_state:
     st.session_state.selected_players = []
+if 'teams_generated' not in st.session_state:
+    st.session_state.teams_generated = False
+if 'team1' not in st.session_state:
+    st.session_state.team1 = []
+if 'team2' not in st.session_state:
+    st.session_state.team2 = []
 
 # File name to read
 DATA_FILE = "thursday_football.xlsx"
 
 def get_team_from_value(cell_value):
-    """
-    Determine team from cell value
-    """
+    """Determine team from cell value"""
     if pd.isna(cell_value) or cell_value is None:
         return 'none', None
     
@@ -151,136 +199,187 @@ if not st.session_state.player_data:
 
 # Display app content based on whether data was loaded
 if st.session_state.player_data:
-    st.success(f"Data loaded successfully from '{DATA_FILE}'! Found {len(st.session_state.player_data)} players.")
+    st.success(f"✅ Data loaded successfully from '{DATA_FILE}'! Found {len(st.session_state.player_data)} players.")
     
-    # Player selection
-    st.subheader("Select Players")
-    all_players = sorted(st.session_state.player_data.keys())
+    # Create tabs for better organization
+    tab1, tab2, tab3 = st.tabs(["👥 Player Selection", "📊 Player Statistics", "🏆 Generated Teams"])
     
-    # Create two columns for player selection
-    col1, col2 = st.columns(2)
+    with tab1:
+        st.markdown('<h2 class="sub-header">Player Selection</h2>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Player selection
+            all_players = sorted(st.session_state.player_data.keys())
+            
+            # Create two columns for player selection
+            select_col1, select_col2 = st.columns(2)
+            
+            with select_col1:
+                st.markdown("**Available Players**")
+                for player in all_players:
+                    if player not in st.session_state.selected_players:
+                        if st.button(f"➕ {player}", key=f"add_{player}"):
+                            if len(st.session_state.selected_players) < 10:
+                                st.session_state.selected_players.append(player)
+                                st.session_state.teams_generated = False
+                                st.rerun()
+                            else:
+                                st.warning("Maximum of 10 players already selected")
+            
+            with select_col2:
+                st.markdown("**Selected Players**")
+                for player in st.session_state.selected_players:
+                    if st.button(f"➖ {player}", key=f"remove_{player}"):
+                        st.session_state.selected_players.remove(player)
+                        st.session_state.teams_generated = False
+                        st.rerun()
+            
+            st.info(f"**{len(st.session_state.selected_players)} of 10 players selected**")
+        
+        with col2:
+            # Action buttons
+            st.markdown("**Actions**")
+            if st.button("🔄 Randomly Select 10 Players", help="Randomly select 10 players"):
+                if len(all_players) >= 10:
+                    st.session_state.selected_players = random.sample(all_players, 10)
+                    st.session_state.teams_generated = False
+                    st.rerun()
+                else:
+                    st.error("Not enough players in the dataset")
+            
+            if st.button("🧹 Clear All Selections", help="Clear all selections"):
+                st.session_state.selected_players = []
+                st.session_state.teams_generated = False
+                st.rerun()
+                
+            if st.button("📊 Generate Teams", disabled=len(st.session_state.selected_players) != 10,
+                        help="Generate balanced teams from selected players"):
+                st.session_state.team1, st.session_state.team2 = generate_teams(
+                    st.session_state.selected_players, 
+                    st.session_state.performance, 
+                    st.session_state.synergy
+                )
+                st.session_state.teams_generated = True
+                st.rerun()
     
-    with col1:
-        st.markdown("**Available Players**")
-        for player in all_players:
-            if player not in st.session_state.selected_players:
-                if st.button(f"➕ {player}", key=f"add_{player}"):
-                    if len(st.session_state.selected_players) < 10:
-                        st.session_state.selected_players.append(player)
-                    else:
-                        st.warning("Maximum of 10 players already selected")
-    
-    with col2:
-        st.markdown("**Selected Players**")
-        for player in st.session_state.selected_players:
-            if st.button(f"➖ {player}", key=f"remove_{player}"):
-                st.session_state.selected_players.remove(player)
-    
-    st.info(f"{len(st.session_state.selected_players)} of 10 players selected")
-    
-    # Display player stats
-    with st.expander("View Player Statistics"):
+    with tab2:
+        st.markdown('<h2 class="sub-header">Player Statistics</h2>', unsafe_allow_html=True)
+        
+        # Display player stats in a nice table
         stats_data = []
-        for player in all_players:
+        for player in sorted(st.session_state.player_data.keys()):
             perf = st.session_state.performance[player]
             win_rate = (perf['score'] + perf['games']) / (2 * perf['games']) if perf['games'] > 0 else 0
             stats_data.append({
                 'Player': player,
                 'Score': perf['score'],
-                'Games': perf['games'],
-                'Win Rate': f"{win_rate:.2%}"
+                'Games Played': perf['games'],
+                'Win Rate': f"{win_rate:.1%}"
             })
+        
         stats_df = pd.DataFrame(stats_data)
-        st.dataframe(stats_df, use_container_width=True)
+        st.dataframe(
+            stats_df,
+            use_container_width=True,
+            column_config={
+                "Player": st.column_config.TextColumn(width="medium"),
+                "Score": st.column_config.NumberColumn(format="%d"),
+                "Games Played": st.column_config.NumberColumn(format="%d"),
+                "Win Rate": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=1)
+            },
+            hide_index=True
+        )
     
-    # Action buttons
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("🔄 Random Select", help="Randomly select 10 players"):
-            if len(all_players) >= 10:
-                st.session_state.selected_players = random.sample(all_players, 10)
-            else:
-                st.error("Not enough players in the dataset")
-    
-    with col2:
-        if st.button("🧹 Clear All", help="Clear all selections"):
-            st.session_state.selected_players = []
+    with tab3:
+        st.markdown('<h2 class="sub-header">Team Results</h2>', unsafe_allow_html=True)
+        
+        if st.session_state.teams_generated:
+            # Calculate team stats
+            team1_score = sum(st.session_state.performance[p]['score'] for p in st.session_state.team1)
+            team1_games = sum(st.session_state.performance[p]['games'] for p in st.session_state.team1)
+            team2_score = sum(st.session_state.performance[p]['score'] for p in st.session_state.team2)
+            team2_games = sum(st.session_state.performance[p]['games'] for p in st.session_state.team2)
             
-    with col3:
-        if st.button("📊 Generate Teams", disabled=len(st.session_state.selected_players) != 10,
-                    help="Generate balanced teams from selected players"):
-            team1, team2 = generate_teams(
-                st.session_state.selected_players, 
-                st.session_state.performance, 
-                st.session_state.synergy
-            )
-            
-            # Display results
-            st.subheader("Team Results")
-            
+            # Display team comparison
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("### 🏆 Team Red")
-                team1_score = 0
-                team1_games = 0
-                for player in team1:
+                st.markdown("### 🔴 Team Red")
+                for player in st.session_state.team1:
                     perf = st.session_state.performance[player]
-                    team1_score += perf['score']
-                    team1_games += perf['games']
                     win_rate = (perf['score'] + perf['games']) / (2 * perf['games']) if perf['games'] > 0 else 0
-                    st.write(f"**{player}** (Score: {perf['score']}, Games: {perf['games']}, Win Rate: {win_rate:.2%})")
+                    with st.container():
+                        st.markdown(f'<div class="player-card team-red">', unsafe_allow_html=True)
+                        st.markdown(f"**{player}**")
+                        st.markdown(f"Score: {perf['score']} | Games: {perf['games']} | Win Rate: {win_rate:.1%}")
+                        st.markdown('</div>', unsafe_allow_html=True)
                 
+                st.markdown(f'<div class="metric-card">', unsafe_allow_html=True)
                 st.metric("Team Red Total", f"Score: {team1_score} | Games: {team1_games}")
+                st.markdown('</div>', unsafe_allow_html=True)
             
             with col2:
                 st.markdown("### ⚪ Team White")
-                team2_score = 0
-                team2_games = 0
-                for player in team2:
+                for player in st.session_state.team2:
                     perf = st.session_state.performance[player]
-                    team2_score += perf['score']
-                    team2_games += perf['games']
                     win_rate = (perf['score'] + perf['games']) / (2 * perf['games']) if perf['games'] > 0 else 0
-                    st.write(f"**{player}** (Score: {perf['score']}, Games: {perf['games']}, Win Rate: {win_rate:.2%})")
+                    with st.container():
+                        st.markdown(f'<div class="player-card team-white">', unsafe_allow_html=True)
+                        st.markdown(f"**{player}**")
+                        st.markdown(f"Score: {perf['score']} | Games: {perf['games']} | Win Rate: {win_rate:.1%}")
+                        st.markdown('</div>', unsafe_allow_html=True)
                 
+                st.markdown(f'<div class="metric-card">', unsafe_allow_html=True)
                 st.metric("Team White Total", f"Score: {team2_score} | Games: {team2_games}")
+                st.markdown('</div>', unsafe_allow_html=True)
             
-            # Calculate team balance
+            # Team balance indicator
             balance_score = abs(team1_score - team2_score)
-            st.metric("Team Balance Score", f"{balance_score}", 
-                     delta="Well balanced" if balance_score <= 2 else "Some imbalance")
+            st.markdown("---")
+            st.markdown("### ⚖️ Team Balance")
+            if balance_score <= 2:
+                st.success(f"**Excellent Balance** (Difference: {balance_score})")
+            elif balance_score <= 5:
+                st.info(f"**Good Balance** (Difference: {balance_score})")
+            else:
+                st.warning(f"**Some Imbalance** (Difference: {balance_score})")
+        
+        else:
+            st.info("👆 Select 10 players and click 'Generate Teams' to see team results")
 
 else:
-    st.error(f"Could not load data from '{DATA_FILE}'. Please make sure the file exists in the same directory as this app.")
+    st.error(f"❌ Could not load data from '{DATA_FILE}'. Please make sure the file exists in the same directory as this app.")
 
-# Add instructions
-with st.expander("📋 File Format Instructions"):
+# Instructions in sidebar
+with st.sidebar:
+    st.markdown("### 📋 Instructions")
     st.markdown("""
-    Your Excel file should follow this format:
-    - **First column**: Player names
-    - **Subsequent columns**: Match results using these codes:
-    
-    ### Team Codes (prefix):
-    - 🔴 **Red Team**: Prefix with `R:` (e.g., `R:W`)
-    - ⚪ **White Team**: Prefix with `W:` or no prefix (e.g., `W:L` or just `L`)
-    - ⚫ **Did Not Play**: Prefix with `B:` (e.g., `B:W`)
-    
-    ### Result Codes:
-    - ✅ **Win**: `W`
-    - 🔄 **Draw**: `D`
-    - ❌ **Loss**: `L`
-    
-    ### Example row:
-    | Player Name | Match 1 | Match 2 | Match 3 |
-    |-------------|---------|---------|---------|
-    | John Doe    | R:W     | W:L     | B:W     |
+    1. Make sure **'thursday_football.xlsx'** is in the same directory
+    2. Select **10 players** from the available list
+    3. Click **'Generate Teams'** to create balanced teams
+    4. View results in the **'Generated Teams'** tab
     """)
+    
+    st.markdown("### 📊 Excel Format")
+    st.markdown("""
+    - **First column**: Player names
+    - **Other columns**: Match results
+    - **Format**: `Team:Result` or just `Result`
+    - **Teams**: R (Red), W (White), B (None)
+    - **Results**: W (Win), D (Draw), L (Loss)
+    
+    Example: `R:W` = Red team, Win
+    """)
+    
+    st.markdown("### 🔧 Actions")
+    if st.button("🔄 Reload Data"):
+        st.session_state.player_data = {}
+        st.session_state.selected_players = []
+        st.session_state.teams_generated = False
+        st.rerun()
 
 # Add footer
 st.markdown("---")
-st.markdown("### Need help?")
-st.markdown(f"1. Make sure '{DATA_FILE}' exists in the same directory as this app")
-st.markdown("2. Check that your Excel file follows the format above")
-st.markdown("3. The app will automatically load data when it starts")
+st.markdown("*5v5 Team Generator - Automatically creates balanced teams based on historical performance*")
