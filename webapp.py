@@ -40,6 +40,7 @@ st.markdown("""
         padding: 0.5rem;
         margin: 0.5rem 0;
         border-radius: 0.25rem;
+        color: #000000 !important; /* Ensure text is visible */
     }
     .team-white {
         background-color: #f5f5f5;
@@ -47,6 +48,7 @@ st.markdown("""
         padding: 0.5rem;
         margin: 0.5rem 0;
         border-radius: 0.25rem;
+        color: #000000 !important; /* Ensure text is visible */
     }
     .player-card {
         background-color: #f8f9fa;
@@ -54,6 +56,7 @@ st.markdown("""
         padding: 0.75rem;
         margin: 0.5rem 0;
         border-left: 4px solid #3498db;
+        color: #000000 !important;
     }
     .stButton button {
         width: 100%;
@@ -62,7 +65,11 @@ st.markdown("""
         font-size: 1.3rem;
         font-weight: bold;
         margin-bottom: 0.5rem;
-        color: #2c3e50;
+        color: #2c3e50 !important;
+    }
+    /* Ensure all text is visible */
+    .stMarkdown, .stInfo, .stSuccess, .stWarning, .stError {
+        color: #000000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
