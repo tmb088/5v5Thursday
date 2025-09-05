@@ -22,7 +22,7 @@ st.markdown("""
     }
     .sub-header {
         font-size: 1.5rem;
-        color: #2c3e50;
+        color: #1f77b4;
         border-bottom: 2px solid #3498db;
         padding-bottom: 0.3rem;
         margin-top: 1.5rem;
@@ -377,3 +377,4 @@ with st.sidebar:
 # Add footer
 st.markdown("---")
 st.markdown("*5v5 Team Generator - Automatically creates balanced teams based on historical performance*")
+
